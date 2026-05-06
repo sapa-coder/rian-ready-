@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rian Ready - ระบบยืมร่ม</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #fcfaff; }
+        .purple-gradient { background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwnM59khojRko94C-yJq8DM0AMu7B0tdRcSoERt50TpPvvigHSvVMHmj5sgybB1fTGNlg/exec";
+    </script>
+
+    <header class="max-w-6xl mx-auto mb-8">
+        <div class="purple-gradient text-white p-10 rounded-[2rem] shadow-xl relative overflow-hidden">
+            <h1 class="text-4xl font-bold mb-2">Rian Ready</h1>
+            <p class="text-purple-100 opacity-90">ระบบยืมร่มพี่สภานักเรียน โรงเรียนชัยนาทพิทยาคม</p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 bg-white p-8 rounded-[2rem] shadow-sm border border-purple-50">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-semibold text-gray-800">สถานะร่ม</h2>
+                <div class="flex gap-4 text-sm">
+                    <span class="flex items-center"><span class="w-3 h-3 bg-green-400 rounded-full mr-2"></span>ว่าง</span>
+                    <span class="flex items-center"><span class="w-3 h-3 bg-red-400 rounded-full mr-2"></span>ถูกยืม</span>
+                </div>
+            </div>
+            <div id="umbrellaGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-purple-50">
+            <h2 class="text-xl font-semibold mb-6 text-purple-700 border-l-4 border-purple-500 pl-4">ประชาสัมพันธ์</h2>
+            <div id="newsList" class="space-y-4">
+                </div>
+        </div>
+    </main>
+
+    <footer class="max-w-6xl mx-auto mt-12 text-center text-gray-400 pb-10">
+        <p class="font-bold">ผู้พัฒนาระบบ</p>
+        <p>คณะกรรมการสภานักเรียน โรงเรียนชัยนาทพิทยาคม</p>
+        <p class="text-sm italic">งานส่งเสริมประชาธิปไตยในโรงเรียน</p>
+    </footer>
+
+    <div id="modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl">
+            <h3 id="mTitle" class="text-2xl font-bold mb-6 text-purple-600">ลงข้อมูล</h3>
+            <form id="uForm" class="space-y-4">
+                <input type="hidden" id="targetUmbrella">
+                <input type="hidden" id="targetAction">
+                <input type="text" id="uName" placeholder="ชื่อ-นามสกุล" required class="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-purple-400">
+                <input type="text" id="uClass" placeholder="ห้อง (เช่น ม.4/1)" required class="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-purple-400">
+                <input type="number" id="uId" placeholder="เลขประจำตัว" required class="w-full bg-gray-50 border-none rounded-2xl p-4 focus:ring-2 focus:ring-purple-400">
+                <div class="flex gap-4 pt-4">
+                    <button type="button" onclick="closeModal()" class="flex-1 py-4 text-gray-400 font-semibold">ยกเลิก</button>
+                    <button type="submit" class="flex-1 py-4 bg-purple-600 text-white rounded-2xl shadow-lg hover:bg-purple-700 transition font-semibold">ยืนยัน</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // โหลดข้อมูลเมื่อเปิดเว็บ
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchUmbrellas();
+            fetchNews();
+        });
+
+        async function fetchUmbrellas() {
+            const res = await fetch(`${GAS_URL}?action=getUmbrellaStatus`);
+            const data = await res.json();
+            const grid = document.getElementById('umbrellaGrid');
+            grid.innerHTML = '';
+            
+            Object.keys(data).forEach(id => {
+                const status = data[id];
+                const isAvailable = status === 'available';
+                const card = document.createElement('div');
+                card.className = `p-6 rounded-3xl cursor-pointer transition-all hover:scale-105 border-2 ${isAvailable ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`;
+                card.innerHTML = `<div class="text-xs font-bold">${id}</div><div class="text-lg">${isAvailable ? 'ว่าง' : 'ถูกยืม'}</div>`;
+                card.onclick = () => openModal(id, isAvailable ? 'ยืม' : 'คืน');
+                grid.appendChild(card);
+            });
+        }
+
+        async function fetchNews() {
+            const res = await fetch(`${GAS_URL}?action=getNewsData`);
+            const data = await res.json();
+            const list = document.getElementById('newsList');
+            list.innerHTML = data.map(n => `<div class="pb-3 border-b border-gray-50"><p class="text-xs text-purple-400">${n.date}</p><p class="text-gray-600">${n.title}</p></div>`).join('');
+        }
+
+        function openModal(id, action) {
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('mTitle').innerText = `${action}ร่ม: ${id}`;
+            document.getElementById('targetUmbrella').value = id;
+            document.getElementById('targetAction').value = action;
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            document.getElementById('uForm').reset();
+        }
+
+        document.getElementById('uForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true; btn.innerText = 'กำลังส่ง...';
+
+            const payload = {
+                action: 'recordData',
+                data: {
+                    umbrellaId: document.getElementById('targetUmbrella').value,
+                    status: document.getElementById('targetAction').value,
+                    name: document.getElementById('uName').value,
+                    studentClass: document.getElementById('uClass').value,
+                    studentId: document.getElementById('uId').value
+                }
+            };
+
+            await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+            alert('บันทึกสำเร็จ!');
+            closeModal();
+            fetchUmbrellas();
+            btn.disabled = false; btn.innerText = 'ยืนยัน';
+        };
+    </script>
+</body>
+</html>
